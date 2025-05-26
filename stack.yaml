@@ -1,4 +1,4 @@
-resolver: lts-20.10
+resolver: lts-20.18
 
 flags:
   hedgehog-classes:
@@ -7,3 +7,5 @@ flags:
     comonad: false
     vector: false
     primitive: false
+
+notify-if-nix-on-path: false
