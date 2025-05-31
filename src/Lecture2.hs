@@ -16,33 +16,32 @@ Unlike exercises to Lecture 1, this module also contains more
 challenging exercises. You don't need to solve them to finish the
 course but you can if you like challenges :)
 -}
+module Lecture2 (
+    -- * Normal
+    lazyProduct,
+    duplicate,
+    removeAt,
+    evenLists,
+    dropSpaces,
+    Knight (..),
+    dragonFight,
 
-module Lecture2
-    ( -- * Normal
-      lazyProduct
-    , duplicate
-    , removeAt
-    , evenLists
-    , dropSpaces
-
-    , Knight (..)
-    , dragonFight
-
-      -- * Hard
-    , isIncreasing
-    , merge
-    , mergeSort
-
-    , Expr (..)
-    , Variables
-    , EvalError (..)
-    , eval
-    , constantFolding
-    ) where
+    -- * Hard
+    isIncreasing,
+    merge,
+    mergeSort,
+    Expr (..),
+    Variables,
+    EvalError (..),
+    eval,
+    constantFolding,
+) where
 
 -- VVV If you need to import libraries, do it after this line ... VVV
+import Data.Char
+import Data.List (partition)
 
--- ^^^ and before this line. Otherwise the test suite might fail  ^^^
+-- ^ ^^ and before this line. Otherwise the test suite might fail  ^^^
 
 {- | Implement a function that finds a product of all the numbers in
 the list. But implement a lazier version of this function: if you see
@@ -52,7 +51,9 @@ zero, you can stop calculating product and return 0 immediately.
 84
 -}
 lazyProduct :: [Int] -> Int
-lazyProduct = error "TODO"
+lazyProduct [] = 1
+lazyProduct (0 : _) = 0
+lazyProduct (x : xs) = x * lazyProduct xs
 
 {- | Implement a function that duplicates every element in the list.
 
@@ -62,7 +63,10 @@ lazyProduct = error "TODO"
 "ccaabb"
 -}
 duplicate :: [a] -> [a]
-duplicate = error "TODO"
+duplicate [] = []
+duplicate xs = concatMap (\x -> [x, x]) xs
+
+-- duplicate (x : xs) = x : x : duplicate xs
 
 {- | Implement function that takes index and a list and removes the
 element at the given position. Additionally, this function should also
@@ -74,7 +78,12 @@ return the removed element.
 >>> removeAt 10 [1 .. 5]
 (Nothing,[1,2,3,4,5])
 -}
-removeAt = error "TODO"
+removeAt :: Int -> [a] -> (Maybe a, [a])
+removeAt n xs
+    | n < 0 = (Nothing, xs)
+    | otherwise = case splitAt n xs of
+        (front, y : ys) -> (Just y, front ++ ys) -- this will be evaluated when length xs > n
+        _ -> (Nothing, xs)
 
 {- | Write a function that takes a list of lists and returns only
 lists of even lengths.
@@ -85,7 +94,8 @@ lists of even lengths.
 ♫ NOTE: Use eta-reduction and function composition (the dot (.) operator)
   in this function.
 -}
-evenLists = error "TODO"
+evenLists :: [[a]] -> [[a]]
+evenLists = filter $ even . length
 
 {- | The @dropSpaces@ function takes a string containing a single word
 or number surrounded by spaces and removes all leading and trailing
@@ -101,7 +111,8 @@ spaces.
 
 🕯 HINT: look into Data.Char and Prelude modules for functions you may use.
 -}
-dropSpaces = error "TODO"
+dropSpaces :: String -> String
+dropSpaces = takeWhile (not . isSpace) . dropWhile isSpace
 
 {- |
 
@@ -159,12 +170,18 @@ You're free to define any helper functions.
 
 -- some help in the beginning ;)
 data Knight = Knight
-    { knightHealth    :: Int
-    , knightAttack    :: Int
+    { knightHealth :: Int
+    , knightAttack :: Int
     , knightEndurance :: Int
     }
 
-dragonFight = error "TODO"
+dragonFight :: Knight
+dragonFight =
+    Knight
+        { knightHealth = 100
+        , knightAttack = 10
+        , knightEndurance = 10
+        }
 
 ----------------------------------------------------------------------------
 -- Extra Challenges
@@ -185,7 +202,9 @@ False
 True
 -}
 isIncreasing :: [Int] -> Bool
-isIncreasing = error "TODO"
+isIncreasing [] = True
+isIncreasing [_] = True
+isIncreasing (x : y : xs) = x <= y && isIncreasing (y : xs)
 
 {- | Implement a function that takes two lists, sorted in the
 increasing order, and merges them into new list, also sorted in the
@@ -198,7 +217,11 @@ verify that.
 [1,2,3,4,7]
 -}
 merge :: [Int] -> [Int] -> [Int]
-merge = error "TODO"
+merge [] ys = ys
+merge xs [] = xs
+merge (x : xs) (y : ys)
+    | x <= y = x : merge xs (y : ys)
+    | otherwise = y : merge (x : xs) ys
 
 {- | Implement the "Merge Sort" algorithm in Haskell. The @mergeSort@
 function takes a list of numbers and returns a new list containing the
@@ -215,8 +238,11 @@ The algorithm of merge sort is the following:
 [1,2,3]
 -}
 mergeSort :: [Int] -> [Int]
-mergeSort = error "TODO"
-
+mergeSort [] = []
+mergeSort [x] = [x]
+mergeSort xs = merge (mergeSort left) (mergeSort right)
+  where
+    (left, right) = splitAt (length xs `div` 2) xs
 
 {- | Haskell is famous for being a superb language for implementing
 compilers and interpreters to other programming languages. In the next
@@ -260,7 +286,7 @@ Normally, this would be a sum type with several constructors
 describing all possible errors. But we have only one error in our
 evaluation process.
 -}
-data EvalError
+newtype EvalError
     = VariableNotFound String
     deriving (Show, Eq)
 
@@ -268,7 +294,15 @@ data EvalError
 It returns either a successful evaluation result or an error.
 -}
 eval :: Variables -> Expr -> Either EvalError Int
-eval = error "TODO"
+eval _ (Lit n) = Right n
+eval vars (Var name) =
+    case lookup name vars of
+        Just value -> Right value
+        Nothing -> Left (VariableNotFound name)
+eval vars (Add expr1 expr2) = do
+    value1 <- eval vars expr1
+    value2 <- eval vars expr2
+    return (value1 + value2)
 
 {- | Compilers also perform optimizations! One of the most common
 optimizations is "Constant Folding". It performs arithmetic operations
@@ -292,4 +326,29 @@ Write a function that takes and expression and performs "Constant
 Folding" optimization on the given expression.
 -}
 constantFolding :: Expr -> Expr
-constantFolding = error "TODO"
+constantFolding (Lit n) = Lit n
+constantFolding (Var name) = Var name
+constantFolding (Add e1 e2) = constantFolding e1 `addExpr` constantFolding e2
+
+-- Smart addition that flattens and combines literals
+addExpr :: Expr -> Expr -> Expr
+addExpr e1 e2 =
+    let terms = flatten e1 ++ flatten e2
+        (literals, vars) = partition isLit terms
+        total = sum [n | Lit n <- literals]
+     in case (total, vars) of
+            (0, []) -> Lit 0
+            (0, [v]) -> v
+            (0, vs) -> foldl1 Add vs
+            (n, []) -> Lit n
+            (n, vs) -> foldl1 Add (Lit n : vs)
+
+-- | Flatten expression into list of terms
+flatten :: Expr -> [Expr]
+flatten (Add e1 e2) = flatten e1 ++ flatten e2
+flatten e = [e]
+
+-- | Check if expression is a literal
+isLit :: Expr -> Bool
+isLit (Lit _) = True
+isLit _ = False
